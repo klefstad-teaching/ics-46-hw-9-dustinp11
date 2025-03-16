@@ -17,41 +17,40 @@ bool edit_distance_within(const std::string& str1, const std::string& str2, int 
 
     // Wagner-Fischer inspired algorithm
     if (d == 1) {
-        int len1 = str2.length(), len2 = str2.length();
-        if (abs(len1 - len2) > 1) {
-            return false;
-        }
+        if (std::abs(static_cast<int>(str1.size() - str2.size())) > 1)
+        return false;
         
-        int differences = 0;
-        int i = 0, j = 0;
-        
-        while (i < len1 && j < len2) {
-            if (str1[i] != str2[j]) {
-                
-                if (differences == 1) {
-                    return false;
+        // case 1: Equal length -> only substitution possible.
+        if (str1.size() == str2.size()) {
+            int diffCount = 0;
+            for (size_t i = 0; i < str1.size(); ++i) {
+                if (str1[i] != str2[i]) {
+                    ++diffCount;
+                    if (diffCount > 1)
+                        return false;
                 }
-                
-                differences++;
-                
-                if (len1 > len2) {
-                    i++;
-                    continue;
-                } else if (len1 < len2) {
-                    j++;
-                    continue;
-                }
-                
             }
-            i++;
-            j++;
+            return true;
         }
         
-        if (i < len1 || j < len2) {
-            differences++;
+        // case 2: lengths differ by one -> only insertion or deletion possible.
+        const string& s = (str1.size() < str2.size()) ? str1 : str2;
+        const string& t = (str1.size() < str2.size()) ? str2 : str1;
+        
+        size_t i = 0, j = 0;
+        bool foundDifference = false;
+        while (i < s.size() && j < t.size()) {
+            if (s[i] != t[j]) {
+                if (foundDifference)
+                    return false;
+                foundDifference = true;
+                ++j;
+            } else {
+                ++i; ++j;
+            }
         }
-    
-        return differences == 1;
+        
+        return true;
     }
     else {
         int m = str1.size(), n = str2.size();
@@ -143,13 +142,13 @@ void verify_word_ladder()
 {
     set<string> word_list;
     load_words(word_list, "words.txt");
-    // my_assert(generate_word_ladder("cat", "dog", word_list).size() == 4);
+    my_assert(generate_word_ladder("cat", "dog", word_list).size() == 4);
 
-    // my_assert(generate_word_ladder("marty", "curls", word_list).size() == 6);
+    my_assert(generate_word_ladder("marty", "curls", word_list).size() == 6);
 
-    // my_assert(generate_word_ladder("code", "data", word_list).size() == 6);
+    my_assert(generate_word_ladder("code", "data", word_list).size() == 6);
 
-    // my_assert(generate_word_ladder("work", "play", word_list).size() == 6);
+    my_assert(generate_word_ladder("work", "play", word_list).size() == 6);
 
     my_assert(generate_word_ladder("awake", "sleep", word_list).size() == 8);
 
