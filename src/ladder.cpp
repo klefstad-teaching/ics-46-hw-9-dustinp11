@@ -49,31 +49,43 @@ bool is_adjacent(const string& word1, const string& word2)
 
 vector<string> generate_word_ladder(const string& begin_word, const string& end_word, const set<string>& word_list)
 {
+    vector<string> sorted_words(word_list.begin(), word_list.end());
+    sort(sorted_words.begin(), sorted_words.end());
     // wild cards
     unordered_map<string, vector<string>> adj_map;
     
     // process all words to build the adjacency map
-    auto add_to_adj_map = [&adj_map](const string& word) {
-        // substitution patterns: c[*]t, ca[*], etc.
+    for (const string& word : sorted_words) {
         for (int i = 0; i < word.length(); i++) {
             string pattern = word;
             pattern[i] = '*';
             adj_map[pattern].push_back(word);
         }
-        
-        // insertion and deletion patterns: [*]cat, c[*]at, etc.
+    }
+
+    for (const string& word : sorted_words) {
         for (int i = 0; i <= word.length(); i++) {
             string pattern = word.substr(0, i) + "*" + word.substr(i);
             adj_map[pattern].push_back(word);
         }
-    };
+    }
     
-    // process all words in the dictionary
-    for (const string& word : word_list) add_to_adj_map(word);
-    
-    // process begin_word
-    if (word_list.find(begin_word) == word_list.end()) add_to_adj_map(begin_word);
+    for (auto& [pattern, words] : adj_map) {
+        sort(words.begin(), words.end());
+    }
 
+    if (word_list.find(begin_word) == word_list.end()) {
+        for (int i = 0; i < begin_word.length(); i++) {
+            string pattern = begin_word;
+            pattern[i] = '*';
+            adj_map[pattern].push_back(begin_word);
+        }
+        for (int i = 0; i <= begin_word.length(); i++) {
+            string pattern = begin_word.substr(0, i) + "*" + begin_word.substr(i);
+            adj_map[pattern].push_back(begin_word);
+        }
+    }
+    
     queue<vector<string>> ladder_queue;
     ladder_queue.push({begin_word});
 
@@ -103,8 +115,10 @@ vector<string> generate_word_ladder(const string& begin_word, const string& end_
                     visited.insert(next_word);
                     vector<string> new_ladder = curr_ladder;
                     new_ladder.push_back(next_word);
-                    if (next_word == end_word) 
+                    if (next_word == end_word) {
+                        print_word_ladder(new_ladder);
                         return new_ladder;
+                    }
                     ladder_queue.push(new_ladder);
                 }
             }
@@ -140,16 +154,15 @@ void verify_word_ladder()
 {
     set<string> word_list;
     load_words(word_list, "words.txt");
-    // my_assert(generate_word_ladder("cat", "dog", word_list).size() == 4);
+    my_assert(generate_word_ladder("cat", "dog", word_list).size() == 4);
 
-    // my_assert(generate_word_ladder("marty", "curls", word_list).size() == 6);
+    my_assert(generate_word_ladder("marty", "curls", word_list).size() == 6);
 
-    // my_assert(generate_word_ladder("code", "data", word_list).size() == 6);
+    my_assert(generate_word_ladder("code", "data", word_list).size() == 6);
 
-    // my_assert(generate_word_ladder("work", "play", word_list).size() == 6);
+    my_assert(generate_word_ladder("work", "play", word_list).size() == 6);
 
-    // my_assert(generate_word_ladder("sleep", "awake", word_list).size() == 8);
+    my_assert(generate_word_ladder("sleep", "awake", word_list).size() == 8);
 
-    my_assert(generate_word_ladder("car", "cheat", word_list).size() == 4);
 }
 
