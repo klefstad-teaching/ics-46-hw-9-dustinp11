@@ -4,11 +4,11 @@
 #include "ladder.h"
 
 TEST(EditDistance, Test) {
-  EXPECT_TRUE(is_adjacent("apple", "appl"));
-  EXPECT_TRUE(is_adjacent("mouse", "mous"));
+  EXPECT_FALSE(is_adjacent("Bailey", "psychic"));
+  EXPECT_FALSE(is_adjacent("at", "dog"));
   EXPECT_TRUE(is_adjacent("apple", "appe"));
   EXPECT_TRUE(is_adjacent("mouse", "moue"));
-  EXPECT_TRUE(is_adjacent("apple", "aple"));
+  EXPECT_TRUE(is_adjacent("apple", "appls"));
   EXPECT_TRUE(is_adjacent("mouse", "ouse"));
   EXPECT_TRUE(is_adjacent("apple", "applep"));
   EXPECT_TRUE(is_adjacent("mouse", "mousee"));

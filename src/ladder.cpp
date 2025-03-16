@@ -14,8 +14,7 @@ bool edit_distance_within(const std::string& str1, const std::string& str2, int 
     // idea of this algorithm:
     // 1) initalize: prev (length str2 + 1 = m + 1), curr (length str2 + 1 = m + 1)
     // where on the ith loop, prev[j] represents the minimum distance from str1[:i] to str2[:j]
-    // 2) outer loop over str1 (i) and inner loop over str2 (j) within bounds:
-    // [max(1, i - d), min(m, i + d)]
+    // 2) outer loop over str1 (i) and inner loop over str2 (j)
     // 3) compute curr[j] as min of:
     //  - prev[j - 1] (if the current char of str1 matches str2)
     //  - curr[j - 1] + 1 (if we have to insert a character to current substring of str2 to get to str1)
@@ -26,25 +25,25 @@ bool edit_distance_within(const std::string& str1, const std::string& str2, int 
     int l1 = str1.size(), l2 = str2.size();
     if (abs(l1 - l2) > d) return false;
 
-    vector<int> prev(l2 + 1);
-    vector<int> curr(l2 + 1);
+    vector<int> prev(l2 + 1, 0);
+    vector<int> curr(l2 + 1, 0);
 
     for (int i = 0; i <= l2; ++i) prev[i] = i; 
 
     for (int char1 = 1; char1 <= l1; ++char1) {
         curr[0] = char1;
-        
-        for (int char2 = max(1, char1 - d); char2 <= min(l2, char1 + d); ++char2) {
-            // we want to limit bounds to be between char1 - d and char1 + d to ensure we dont exceed edit threshold
-            // but we also need to make sure char2 is within bounds, so intialize to max of 1 and char1 - d and loop until min of l2 and char1 + d
-            if (str1[char1 - 1] == str2[char2 - 1]) { curr[char2] = prev[char2 - 1]; continue;}
+        bool keep_running = false;
+        for (int char2 = 1; char2 <= l2; ++char2) {
+            if (str1[char1 - 1] == str2[char2 - 1]) { curr[char2] = prev[char2 - 1]; }
             else {
                 int deletion_cost = prev[char2] + 1;
                 int insertion_cost = curr[char2 - 1] + 1;
                 int substitution_cost = prev[char2 - 1] + 1;
                 curr[char2] = min({deletion_cost, insertion_cost, substitution_cost});
             }
+            if (curr[char2] <= d) keep_running = true;
         }
+        if (!keep_running) return false;
         swap(prev, curr);
     }
     return prev[l2] <= d;
@@ -71,16 +70,20 @@ vector<string> generate_word_ladder(const string& begin_word, const string& end_
 
         for (string word : word_list) {
             if (is_adjacent(last_word, word)) {
+                
                 if (visited.find(word) == visited.end()) {
                     visited.insert(word);
                     vector<string> new_ladder = curr_ladder;
                     new_ladder.push_back(word);
-                    if (word == end_word) return new_ladder;
+                    
+                    if (word == end_word) {cout << endl; for (auto e: new_ladder) cout << e << " "; cout<<endl; return new_ladder;} 
+                    
                     ladder_queue.push(new_ladder);
                 }
             }
         }
     }
+    
     return {};
 
 }
