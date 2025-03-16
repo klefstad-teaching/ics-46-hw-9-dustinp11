@@ -13,65 +13,40 @@ void error(string word1, string word2, string msg)
 
 bool edit_distance_within(const std::string& str1, const std::string& str2, int d)
 {
-    // we know that d is needed to be fast for adjacency, so 
-
-    // Wagner-Fischer inspired algorithm
-    if (d == 1) {
-        if (std::abs(static_cast<int>(str1.size() - str2.size())) > 1)
+    if (abs(static_cast<int>(str1.size() - str2.size())) > d)
         return false;
         
-        // case 1: Equal length -> only substitution possible.
-        if (str1.size() == str2.size()) {
-            int diffCount = 0;
-            for (size_t i = 0; i < str1.size(); ++i) {
-                if (str1[i] != str2[i]) {
-                    ++diffCount;
-                    if (diffCount > 1)
-                        return false;
-                }
+    // case 1 - equal length
+    if (str1.size() == str2.size()) {
+        int diff = 0;
+        for (size_t i = 0; i < str1.size(); ++i) {
+            if (str1[i] != str2[i]) {
+                ++diff;
+                if (diff > d)
+                    return false;
             }
-            return true;
         }
+        return diff <= d;
+    } else {
         
-        // case 2: lengths differ by one -> only insertion or deletion possible.
+        // case 2 - lengths off by 1
         const string& s = (str1.size() < str2.size()) ? str1 : str2;
         const string& t = (str1.size() < str2.size()) ? str2 : str1;
         
         size_t i = 0, j = 0;
-        bool foundDifference = false;
-        while (i < s.size() && j < t.size()) {
+        int diff = 0;
+        for (; i < s.size() && j < t.size();) 
+        {
             if (s[i] != t[j]) {
-                if (foundDifference)
-                    return false;
-                foundDifference = true;
+                ++diff;
+                if (diff > d) return false;
                 ++j;
             } else {
                 ++i; ++j;
             }
         }
         
-        return true;
-    }
-    else {
-        int m = str1.size(), n = str2.size();
-
-        if (abs(m - n) > d) { return false; }
-
-        vector<vector<int>> dist(m + 1, vector<int>(n+1, 0));
-
-        for (int row = 1; row <= m; ++row) dist[row][0] = row;
-        for (int col = 1; col <= n; ++col) dist[0][col]= col;
-
-        for (int j = 1; j <= n; ++j) {
-            for (int i = 1; i <= m; ++i) {
-                int cost = (str1[i - 1] == str2[j - 1]) ? 0: 1;
-                int deletion = dist[i - 1][j] + 1, insertion = dist[i][j - 1] + 1, sub = dist[i - 1][j - 1] + cost;
-                dist[i][j] = min({deletion, insertion, sub});
-                
-            }
-        }
-
-        return dist[m][n] <= d;
+        return diff <= d;
     }
 }
 
