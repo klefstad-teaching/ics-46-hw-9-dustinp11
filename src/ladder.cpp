@@ -21,32 +21,24 @@ bool edit_distance_within(const std::string& str1, const std::string& str2, int 
     //  - prev[j] + 1 (if we have to delete character from str2[:j] to get to str1[:i])
     // 4) swap prev and curr 
 
-
-    int l1 = str1.size(), l2 = str2.size();
+    int l1 = str1.length(), l2 = str2.length();
     if (abs(l1 - l2) > d) return false;
-
-    vector<int> prev(l2 + 1, 0);
-    vector<int> curr(l2 + 1, 0);
-
-    for (int i = 0; i <= l2; ++i) prev[i] = i; 
-
-    for (int char1 = 1; char1 <= l1; ++char1) {
-        curr[0] = char1;
-        bool keep_running = false;
-        for (int char2 = 1; char2 <= l2; ++char2) {
-            if (str1[char1 - 1] == str2[char2 - 1]) { curr[char2] = prev[char2 - 1]; }
-            else {
-                int deletion_cost = prev[char2] + 1;
-                int insertion_cost = curr[char2 - 1] + 1;
-                int substitution_cost = prev[char2 - 1] + 1;
-                curr[char2] = min({deletion_cost, insertion_cost, substitution_cost});
-            }
-            if (curr[char2] <= d) keep_running = true;
+    if (l1 > l2) return edit_distance_within(str2, str1, d);
+    vector<int> prev(l1 + 1);
+    for (int i = 0; i <= l1; i++) prev[i] = i;  
+    vector<int> curr_row(l1 + 1);
+    for (int char2 = 1; char2 <= l2; char2++) {
+        curr_row[0] = char2; 
+        int min_edit = char2;  
+        for (int i = 1; i <= l1; i++) {
+            int cost = str1[i - 1] != str2[char2 - 1], deletion = prev[i] + 1, insertion = curr_row[i-1] + 1, replace= prev[i-1] + cost;
+            curr_row[i] = min({deletion, insertion, replace});
+            min_edit = min(min_edit, curr_row[i]);
         }
-        if (!keep_running) return false;
-        swap(prev, curr);
-    }
-    return prev[l2] <= d;
+        if (min_edit > d) return false;
+        swap(prev, curr_row);
+    } 
+    return prev[l1] <= d;
 }
 
 bool is_adjacent(const string& word1, const string& word2)
@@ -100,9 +92,12 @@ void load_words(set<string> & word_list, const string& file_name)
 
 void print_word_ladder(const vector<string>& ladder)
 {
-    if (ladder.empty()) cout << "No word ladder found." << endl;
-    for (size_t i = 0; i < ladder.size(); ++i) {
-        cout << ladder[i] << " ";
+    if (ladder.empty()) cout << "No word ladder found."; 
+    else {
+        cout << "Word ladder found: "; 
+        for (size_t i = 0; i < ladder.size(); ++i) {
+            cout << ladder[i] << " ";
+        }
     }
     cout << endl;
 }
