@@ -1,6 +1,6 @@
 #include "ladder.h"
 #include <algorithm>
-#include <unordered_map>
+
 
 #define my_assert(e) {cout << #e << ((e) ? " passed": " failed") << endl; }
 
@@ -10,36 +10,63 @@ void error(string word1, string word2, string msg)
     cerr << msg << endl;
 }
 
+
 bool edit_distance_within(const std::string& str1, const std::string& str2, int d)
 {
-    // idea of this algorithm:
-    // 1) initalize: prev (length str2 + 1 = m + 1), curr (length str2 + 1 = m + 1)
-    // where on the ith loop, prev[j] represents the minimum distance from str1[:i] to str2[:j]
-    // 2) outer loop over str1 (i) and inner loop over str2 (j)
-    // 3) compute curr[j] as min of:
-    //  - prev[j - 1] (if the current char of str1 matches str2)
-    //  - curr[j - 1] + 1 (if we have to insert a character to current substring of str2 to get to str1)
-    //  - prev[j] + 1 (if we have to delete character from str2[:j] to get to str1[:i])
-    // 4) swap prev and curr 
+    // we know that d is needed to be fast for adjacency, so 
+    // optimize for d == 1
+    if (d == 1) {
+        if (abs((int)str1.size() - (int)str2.size()) > 1) return false;
 
-    int l1 = str1.length(), l2 = str2.length();
-    if (abs(l1 - l2) > d) return false;
-    if (l1 > l2) return edit_distance_within(str2, str1, d);
-    vector<int> prev(l1 + 1);
-    for (int i = 0; i <= l1; i++) prev[i] = i;  
-    vector<int> curr_row(l1 + 1);
-    for (int char2 = 1; char2 <= l2; char2++) {
-        curr_row[0] = char2; 
-        int min_edit = char2;  
-        for (int i = 1; i <= l1; i++) {
-            int cost = str1[i - 1] != str2[char2 - 1], deletion = prev[i] + 1, insertion = curr_row[i-1] + 1, replace= prev[i-1] + cost;
-            curr_row[i] = min({deletion, insertion, replace});
-            min_edit = min(min_edit, curr_row[i]);
+        // case 1: same length (check replacements)
+        if (str1.size() == str2.size()) {
+            int differences = 0;
+            for (size_t i = 0; i < str1.size(); ++i) {
+                if (str1[i] != str2[i]) {
+                    ++differences;
+                    if (differences > 1) return false;
+                }
+            }
+            return true;
         }
-        if (min_edit > d) return false;
-        swap(prev, curr_row);
-    } 
-    return prev[l1] <= d;
+
+        // Case 2: length differ by 1 (check insertions/deletions)
+        const string shorter = str1.size() < str2.size() ? str1 : str2;
+        const string longer = str1.size() < str2.size() ? str2 : str1;
+
+        for (size_t i = 0, j = 0; i < shorter.size(); ++i, ++j) {
+            // once we spot mismatch, simulate insertion/deletion by skipping ahead one in the longer string
+            // for example, scam and scram
+            // iterate through scam until we find mismatch at index 2,
+            // then compare the rest of scam, "am", to the rest of scram skipping the mismatch, "am"
+            // this way, we are guaranteed to spot differences instantly
+            if (shorter[i] != longer[j]) {
+                return shorter.substr(i) == longer.substr(j + 1);
+            }
+        }
+        return true;
+    } else {
+        // Wagner-Fischer inspired algorithm
+        int m = str1.size(), n = str2.size();
+
+        if (abs(m - n) > d) { return false; }
+
+        vector<vector<int>> dist(m + 1, vector<int>(n+1, 0));
+
+        for (int row = 1; row <= m; ++row) dist[row][0] = row;
+        for (int col = 1; col <= n; ++col) dist[0][col]= col;
+
+        for (int j = 1; j <= n; ++j) {
+            for (int i = 1; i <= m; ++i) {
+                int cost = (str1[i - 1] == str2[j - 1]) ? 0: 1;
+                int deletion = dist[i - 1][j] + 1, insertion = dist[i][j - 1] + 1, sub = dist[i - 1][j - 1] + cost;
+                dist[i][j] = min({deletion, insertion, sub});
+                
+            }
+        }
+        
+        return dist[m][n] <= d;
+    }
 }
 
 bool is_adjacent(const string& word1, const string& word2)
@@ -49,82 +76,35 @@ bool is_adjacent(const string& word1, const string& word2)
 
 vector<string> generate_word_ladder(const string& begin_word, const string& end_word, const set<string>& word_list)
 {
-    vector<string> sorted_words(word_list.begin(), word_list.end());
-    sort(sorted_words.begin(), sorted_words.end());
-    // wild cards
-    unordered_map<string, vector<string>> adj_map;
-    
-    // process all words to build the adjacency map
-    for (const string& word : sorted_words) {
-        for (int i = 0; i < word.length(); i++) {
-            string pattern = word;
-            pattern[i] = '*';
-            adj_map[pattern].push_back(word);
-        }
-    }
-
-    for (const string& word : sorted_words) {
-        for (int i = 0; i <= word.length(); i++) {
-            string pattern = word.substr(0, i) + "*" + word.substr(i);
-            adj_map[pattern].push_back(word);
-        }
-    }
-    
-    for (auto& [pattern, words] : adj_map) {
-        sort(words.begin(), words.end());
-    }
-
-    if (word_list.find(begin_word) == word_list.end()) {
-        for (int i = 0; i < begin_word.length(); i++) {
-            string pattern = begin_word;
-            pattern[i] = '*';
-            adj_map[pattern].push_back(begin_word);
-        }
-        for (int i = 0; i <= begin_word.length(); i++) {
-            string pattern = begin_word.substr(0, i) + "*" + begin_word.substr(i);
-            adj_map[pattern].push_back(begin_word);
-        }
-    }
-    
     queue<vector<string>> ladder_queue;
-    ladder_queue.push({begin_word});
-
+    vector<string> first_word({begin_word});
+    ladder_queue.push(first_word);
+    
     set<string> visited;
     visited.insert(begin_word);
 
     while (!ladder_queue.empty()) {
-        vector<string> curr_ladder = ladder_queue.front();
+        vector<string> curr_ladder = ladder_queue.front(); // current parital ladder
+        string last_word = curr_ladder.back(); // last word in partial ladder
         ladder_queue.pop();
-        string last_word = curr_ladder.back();
-        vector<string> patterns;
 
-        for (int i = 0; i < last_word.length(); i++) {
-            string pattern = last_word;
-            pattern[i] = '*';
-            patterns.push_back(pattern);
-        }
-
-        for (int i = 0; i <= last_word.length(); i++) {
-            string pattern = last_word.substr(0, i) + "*" + last_word.substr(i);
-            patterns.push_back(pattern);
-        }
-
-        for (const string& pattern : patterns) {
-            for (const string& next_word : adj_map[pattern]) {
-                if (next_word != last_word && visited.find(next_word) == visited.end()) {
-                    visited.insert(next_word);
+        for (string word : word_list) {
+            if (is_adjacent(last_word, word)) {
+                
+                if (visited.find(word) == visited.end()) {
+                    visited.insert(word);
                     vector<string> new_ladder = curr_ladder;
-                    new_ladder.push_back(next_word);
-                    if (next_word == end_word) {
-                        print_word_ladder(new_ladder);
-                        return new_ladder;
-                    }
+                    new_ladder.push_back(word);
+                    
+                    if (word == end_word) return new_ladder;
+                    
                     ladder_queue.push(new_ladder);
                 }
             }
         }
     }
-    return {}; 
+    
+    return {};
 }
 
 
@@ -162,7 +142,7 @@ void verify_word_ladder()
 
     my_assert(generate_word_ladder("work", "play", word_list).size() == 6);
 
-    my_assert(generate_word_ladder("sleep", "awake", word_list).size() == 8);
+    my_assert(generate_word_ladder("awake", "sleep", word_list).size() == 8);
 
 }
 
