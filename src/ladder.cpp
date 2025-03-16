@@ -33,11 +33,11 @@ bool edit_distance_within(const std::string& str1, const std::string& str2, int 
 
     for (int char1 = 1; char1 <= l1; ++char1) {
         curr[0] = char1;
-
+        
         for (int char2 = max(1, char1 - d); char2 <= min(l2, char1 + d); ++char2) {
             // we want to limit bounds to be between char1 - d and char1 + d to ensure we dont exceed edit threshold
             // but we also need to make sure char2 is within bounds, so intialize to max of 1 and char1 - d and loop until min of l2 and char1 + d
-            if (str1[char1 - 1] == str2[char2 - 1]) { curr[char1] = prev[char2 - 1]; continue;}
+            if (str1[char1 - 1] == str2[char2 - 1]) { curr[char2] = prev[char2 - 1]; continue;}
             else {
                 int deletion_cost = prev[char2] + 1;
                 int insertion_cost = curr[char2 - 1] + 1;
